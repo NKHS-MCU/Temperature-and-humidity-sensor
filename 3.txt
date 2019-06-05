@@ -1,0 +1,77 @@
+#include "Arduino.h"
+#include "LTimer.h"
+#include "DHT.h"
+LTimer timer1(LTIMER_1);
+#define DHTPIN 2     // Digital pin connected to the DHT sensor
+#define DHTTYPE DHT11   // DHT 22  (AM2302), AM2321
+DHT dht(DHTPIN, DHTTYPE);
+float h, t, f;
+#include <LWiFi.h>
+#include <WiFiClient.h>
+#include "MCS.h"
+#define _SSID "Yu XR"
+#define _KEY  "ABCDabcd"
+MCSDevice mcs("D8mw8Rf4", "TmoSUnV5372kGvjo");
+MCSDisplayFloat  Temp1("asda");
+MCSDisplayFloat  Temp2("asda");
+void _callback0(void *usr_data)
+{ 
+  
+}
+
+void setup() {
+  // setup Serial output at 9600
+  Serial.begin(9600);
+  // setup Wifi connection
+  while(WL_CONNECTED != WiFi.status())
+  {
+    Serial.print("WiFi.begin(");
+    Serial.print(_SSID);
+    Serial.print(",");
+    Serial.print(_KEY);
+    Serial.println(")...");
+    WiFi.begin(_SSID, _KEY);
+  }
+  Serial.println("WiFi connected !!");
+
+  // setup MCS connection
+  mcs.addChannel(Temp1);
+  mcs.addChannel(Temp2);
+  while(!mcs.connected())
+  {
+    Serial.println("MCS.connect()...");
+    mcs.connect();
+  }
+  Serial.println("MCS connected !!");
+  timer0.begin();
+  dht.begin();
+  timer0.start(1000, LTIMER_REPEAT_MODE, _callback0, NULL);
+  // read LED value from MCS server
+  
+}
+
+void loop() {
+  // call process() to allow background processing, add timeout to avoid high cpu usage
+  h = dht.readHumidity();
+  t = dht.readTemperature();
+  Serial.print("process(");
+  Serial.print(millis());
+  Serial.println(")");
+  mcs.process(100);
+  if(flag){
+  Temp1.set(h);
+  Temp2.set(t);
+  flag = 0;
+  }
+  // updated flag will be cleared in process(), user must check it after process() call.
+  
+  
+  // check if need to re-connect
+  while(!mcs.connected())
+  {
+    Serial.println("re-connect to MCS...");
+    mcs.connect();
+    if(mcs.connected())
+      Serial.println("MCS connected !!");
+  }
+}
